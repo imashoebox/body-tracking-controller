@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>MediaPipe - Pose</title>
+  <!-- <link rel="icon" href="favicon.ico"> -->
+
+  <link rel="stylesheet" href="./utils/landmark_grid.css">
+  <link rel="stylesheet" href="./utils/control_utils.css">
+  <style>
+    .square-box {
+      width: 33%;
+      height: 0;
+      padding-top: 33%;
+      position: absolute;
+      right: 20px;
+      top: 20px;
+    }
+
+    .landmark-grid-container {
+      height: 100%;
+      width: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background-color: #99999999;
+    }
+
+  </style>
+
+  <script src="./utils/camera_utils.js" defer></script>
+  <script src="./utils/control_utils_3d.js" defer></script>
+  <script src="./utils/control_utils.js" defer></script>
+  <script src="./utils/drawing_utils.js" defer></script>
+  <script src="./utils/pose.js" defer></script>
+
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+  <div class="container">
+    <video class="input_video"></video>
+    <canvas class="output_canvas" width="1280px" height="720px"></canvas>
+    <div class="loading">
+      <div class="spinner"></div>
+      <div class="message">
+        Loading
+      </div>
+    </div>
+    <div class="pose"></div>
+  </div>
+  <div class="control-panel">
+  </div>
+  <div class='square-box'>
+    <div class="landmark-grid-container">
+    </div>
+  </div>
+  <script type="module" src="./script.js"></script>
+</body>
+
+</html>
