@@ -36,194 +36,179 @@ const grid = new LandmarkGrid(landmarkContainer, {
 });
 let activeEffect = 'mask';
 
-let currentPose = '';
 const showPose = document.querySelector('.pose');
 
 function dist(x1, y1, x2, y2) {
-  let y = x2 - x1;
-  let x = y2 - y1;
+  const y = x2 - x1;
+  const x = y2 - y1;
 
   return Math.sqrt(x * x + y * y);
 }
 
-function angle(A, B, C) {
-  var AB = Math.sqrt(Math.pow(B.x - A.x, 2) + Math.pow(B.y - A.y, 2));
-  var BC = Math.sqrt(Math.pow(B.x - C.x, 2) + Math.pow(B.y - C.y, 2));
-  var AC = Math.sqrt(Math.pow(C.x - A.x, 2) + Math.pow(C.y - A.y, 2));
-  return Math.acos((BC * BC + AB * AB - AC * AC) / (2 * BC * AB)) * 180 / Math.PI;
+function angle(A, B, C, setAngle = 90, tolerance = 25) {
+  const AB = Math.sqrt(Math.pow(B.x - A.x, 2) + Math.pow(B.y - A.y, 2));
+  const BC = Math.sqrt(Math.pow(B.x - C.x, 2) + Math.pow(B.y - C.y, 2));
+  const AC = Math.sqrt(Math.pow(C.x - A.x, 2) + Math.pow(C.y - A.y, 2));
+  const calcAngle = Math.acos((BC * BC + AB * AB - AC * AC) / (2 * BC * AB)) * 180 / Math.PI;
+  return setAngle + tolerance > calcAngle && setAngle - tolerance < calcAngle;
 }
 
-function isJesus(poses) {
+function IDPoses(poseLandmarks) {
+  const joints = { ...mpPose.POSE_LANDMARKS_RIGHT, ...mpPose.POSE_LANDMARKS_LEFT };
+  for (const idx in joints) {
+    joints[idx] = poseLandmarks[joints[idx]];
+  }
+
   const ARMS = [
-    mpPose.POSE_LANDMARKS_RIGHT.RIGHT_WRIST,
-    mpPose.POSE_LANDMARKS_RIGHT.RIGHT_ELBOW,
-    mpPose.POSE_LANDMARKS_LEFT.LEFT_SHOULDER,
-    mpPose.POSE_LANDMARKS_LEFT.LEFT_ELBOW,
-    mpPose.POSE_LANDMARKS_LEFT.LEFT_WRIST,
-  ];
-  const WRIST = [
-    mpPose.POSE_LANDMARKS_RIGHT.RIGHT_WRIST,
-    mpPose.POSE_LANDMARKS_RIGHT.RIGHT_SHOULDER,
-    mpPose.POSE_LANDMARKS_LEFT.LEFT_SHOULDER,
-    mpPose.POSE_LANDMARKS_LEFT.LEFT_WRIST,
+    joints.RIGHT_WRIST,
+    joints.RIGHT_ELBOW,
+    joints.LEFT_SHOULDER,
+    joints.LEFT_ELBOW,
+    joints.LEFT_WRIST,
   ];
 
-  if (ARMS.find(jointIdx => poses[jointIdx].visibility < 0.65)) {
+  // Check if all arm joints are visible
+  if (ARMS.find(joint => joint.visibility < 0.65)) {
     showPose.textContent = '';
     return;
   }
 
-
-  const joints = { ...mpPose.POSE_LANDMARKS_RIGHT, ...mpPose.POSE_LANDMARKS_LEFT };
-
-  const baseline = poses[mpPose.POSE_LANDMARKS_RIGHT.RIGHT_SHOULDER].y;
   const ALIGN_THRESHOLD = 0.07;
 
-  let lastX = 0;
-  const Ealigned = ARMS.every(jointIdx => {
-    const joint = poses[jointIdx];
-    const isAligned = joint.visibility >= 0.65 && Math.abs(joint.y - baseline) < ALIGN_THRESHOLD && joint.x > lastX;
-    lastX = joint.x;
-    return isAligned;
-  });
+  const Ealigned = angle(joints.RIGHT_WRIST, joints.RIGHT_ELBOW, joints.RIGHT_SHOULDER, 180, 35)
+    && angle(joints.RIGHT_ELBOW, joints.RIGHT_SHOULDER, joints.LEFT_SHOULDER, 90, 35)
+    && joints.RIGHT_WRIST.y < joints.RIGHT_SHOULDER.y
+    && angle(joints.LEFT_WRIST, joints.LEFT_ELBOW, joints.LEFT_SHOULDER, 180)
+    && joints.LEFT_WRIST.y > joints.LEFT_SHOULDER.y;
 
-  lastX = 0;
-  const Waligned = WRIST.every(jointIdx => {
-    const joint = poses[jointIdx];
-    const isAligned = Math.abs(joint.y - baseline) < ALIGN_THRESHOLD && joint.x > lastX;
-    lastX = joint.x;
-    return isAligned;
-  }) && angle(poses[joints.RIGHT_WRIST], poses[joints.RIGHT_ELBOW], poses[joints.RIGHT_SHOULDER],) < 100
-    && angle(poses[joints.LEFT_WRIST], poses[joints.LEFT_ELBOW], poses[joints.LEFT_SHOULDER],) < 100
-    && poses[joints.LEFT_WRIST].y < poses[joints.LEFT_ELBOW].y
-    && poses[joints.RIGHT_WRIST].y < poses[joints.RIGHT_ELBOW].y;
+  const Waligned = angle(joints.RIGHT_WRIST, joints.RIGHT_ELBOW, joints.RIGHT_SHOULDER, 90, 35)
+    && angle(joints.LEFT_WRIST, joints.LEFT_ELBOW, joints.LEFT_SHOULDER, 90, 35)
+    && joints.LEFT_WRIST.y < joints.LEFT_ELBOW.y
+    && joints.RIGHT_WRIST.y < joints.RIGHT_ELBOW.y
+    && angle(joints.LEFT_SHOULDER, joints.RIGHT_SHOULDER, joints.RIGHT_ELBOW, 100, 35)
+    && angle(joints.RIGHT_SHOULDER, joints.LEFT_SHOULDER, joints.LEFT_ELBOW, 100, 35)
+    && joints.RIGHT_ELBOW.y > joints.RIGHT_SHOULDER.y
+    && joints.LEFT_ELBOW.y > joints.LEFT_SHOULDER.y;
 
-  const Aaligned = dist(poses[joints.LEFT_WRIST].x, poses[joints.LEFT_WRIST].y, poses[joints.RIGHT_WRIST].x, poses[joints.RIGHT_WRIST].y) < ALIGN_THRESHOLD
-    && poses[joints.RIGHT_ELBOW].y <= poses[joints.RIGHT_SHOULDER].y
-    && poses[joints.RIGHT_ELBOW].x <= poses[joints.RIGHT_SHOULDER].x
-    && poses[joints.RIGHT_WRIST].y <= poses[joints.RIGHT_ELBOW].y;
+  const Aaligned = dist(joints.LEFT_WRIST.x, joints.LEFT_WRIST.y, joints.RIGHT_WRIST.x, joints.RIGHT_WRIST.y) < ALIGN_THRESHOLD
+    && joints.RIGHT_ELBOW.y <= joints.RIGHT_SHOULDER.y
+    && joints.RIGHT_ELBOW.x <= joints.RIGHT_SHOULDER.x
+    && joints.RIGHT_WRIST.y <= joints.RIGHT_ELBOW.y;
 
-  const Saligned = poses[joints.RIGHT_WRIST].y <= poses[joints.LEFT_EYE].y
-    && poses[joints.RIGHT_ELBOW].x <= poses[joints.RIGHT_SHOULDER].x
-    && poses[joints.LEFT_ELBOW].x >= poses[joints.LEFT_SHOULDER].x
-    && poses[joints.RIGHT_WRIST].x <= poses[joints.RIGHT_SHOULDER].x
-    && poses[joints.LEFT_WRIST].x >= poses[joints.LEFT_SHOULDER].x
-    && poses[joints.LEFT_ELBOW].y > poses[joints.LEFT_SHOULDER].y
-    && poses[joints.LEFT_WRIST].y > poses[joints.LEFT_ELBOW].y
-    && poses[joints.RIGHT_ELBOW].y < poses[joints.RIGHT_SHOULDER].y
-    && poses[joints.RIGHT_WRIST].y < poses[joints.RIGHT_ELBOW].y;
+  const Saligned = angle(joints.LEFT_SHOULDER, joints.RIGHT_SHOULDER, joints.RIGHT_ELBOW, 130)
+    && angle(joints.RIGHT_SHOULDER, joints.RIGHT_ELBOW, joints.RIGHT_WRIST)
+    && angle(joints.RIGHT_SHOULDER, joints.LEFT_SHOULDER, joints.LEFT_ELBOW, 130)
+    && angle(joints.LEFT_SHOULDER, joints.LEFT_ELBOW, joints.LEFT_WRIST)
+    && joints.RIGHT_WRIST.y < joints.RIGHT_SHOULDER.y
+    && joints.LEFT_WRIST.y > joints.LEFT_SHOULDER.y
+    && joints.RIGHT_WRIST.x > joints.RIGHT_SHOULDER.x
+    && joints.LEFT_WRIST.x < joints.LEFT_SHOULDER.x;
 
-  const Daligned = poses[joints.LEFT_WRIST].y < poses[joints.LEFT_ELBOW].y
-    && poses[joints.LEFT_ELBOW].y < poses[joints.LEFT_SHOULDER].y
-    && Math.abs(poses[joints.LEFT_WRIST].x - poses[joints.LEFT_SHOULDER].x) < ALIGN_THRESHOLD
-    && Math.abs(poses[joints.LEFT_ELBOW].x - poses[joints.LEFT_SHOULDER].x) < ALIGN_THRESHOLD
-    && poses[joints.RIGHT_ELBOW].y > poses[joints.RIGHT_SHOULDER].y
-    && poses[joints.RIGHT_WRIST].y > poses[joints.RIGHT_ELBOW].y
-    && poses[joints.RIGHT_ELBOW].x < poses[joints.RIGHT_SHOULDER].y
-    && Math.abs(poses[joints.LEFT_WRIST].x - poses[joints.LEFT_SHOULDER].x) < ALIGN_THRESHOLD;
+  const Daligned = joints.LEFT_WRIST.y < joints.LEFT_ELBOW.y
+    && joints.LEFT_ELBOW.y < joints.LEFT_SHOULDER.y
+    && Math.abs(joints.LEFT_WRIST.x - joints.LEFT_SHOULDER.x) < ALIGN_THRESHOLD
+    && Math.abs(joints.LEFT_ELBOW.x - joints.LEFT_SHOULDER.x) < ALIGN_THRESHOLD
+    && angle(joints.LEFT_SHOULDER, joints.RIGHT_SHOULDER, joints.RIGHT_ELBOW, 135)
+    && angle(joints.RIGHT_SHOULDER, joints.RIGHT_ELBOW, joints.RIGHT_WRIST, 90, 40)
+    && joints.RIGHT_ELBOW.y > joints.RIGHT_SHOULDER.y
+    && angle(joints.LEFT_SHOULDER, joints.LEFT_ELBOW, joints.LEFT_WRIST, 180);
 
-  const crouchAligned = Math.abs(poses[joints.RIGHT_HIP].y - poses[joints.RIGHT_HEEL].y) < 0.15 && poses[joints.RIGHT_HEEL].visibility > 0.65;
+  const crouchAligned = Math.abs(joints.RIGHT_HIP.y - joints.RIGHT_HEEL.y) < 0.15 && joints.RIGHT_HEEL.visibility > 0.65;
 
-  const jumpAligned = Math.abs(poses[joints.RIGHT_ELBOW].x - poses[joints.RIGHT_SHOULDER].x) <= ALIGN_THRESHOLD
-    && Math.abs(poses[joints.RIGHT_WRIST].x - poses[joints.RIGHT_SHOULDER].x) <= ALIGN_THRESHOLD
-    && Math.abs(poses[joints.LEFT_ELBOW].x - poses[joints.LEFT_SHOULDER].x) <= ALIGN_THRESHOLD
-    && Math.abs(poses[joints.LEFT_WRIST].x - poses[joints.LEFT_SHOULDER].x) <= ALIGN_THRESHOLD
-    && poses[joints.LEFT_WRIST].y < poses[joints.LEFT_SHOULDER].y 
-    && poses[joints.RIGHT_WRIST].y < poses[joints.RIGHT_SHOULDER].y 
-    && dist(poses[joints.LEFT_WRIST].x, poses[joints.LEFT_WRIST].y, poses[joints.RIGHT_WRIST].x, poses[joints.RIGHT_WRIST].y) > ALIGN_THRESHOLD;
+  const jumpAligned = angle(joints.RIGHT_SHOULDER, joints.LEFT_SHOULDER, joints.LEFT_ELBOW)
+    && angle(joints.LEFT_SHOULDER, joints.LEFT_ELBOW, joints.LEFT_WRIST, 180)
+    && angle(joints.LEFT_SHOULDER, joints.RIGHT_SHOULDER, joints.RIGHT_ELBOW)
+    && angle(joints.RIGHT_SHOULDER, joints.RIGHT_ELBOW, joints.RIGHT_WRIST, 180)
+    && joints.RIGHT_WRIST.y < joints.RIGHT_SHOULDER.y
+    && joints.LEFT_WRIST.y < joints.LEFT_SHOULDER.y
+    && dist(joints.LEFT_WRIST.x, joints.LEFT_WRIST.y, joints.RIGHT_WRIST.x, joints.RIGHT_WRIST.y) > ALIGN_THRESHOLD;
 
-  const leftAligned = Math.abs(poses[joints.RIGHT_WRIST].x - poses[joints.RIGHT_SHOULDER].x) <= ALIGN_THRESHOLD
-    && Math.abs(poses[joints.RIGHT_ELBOW].x - poses[joints.RIGHT_SHOULDER].x) <= ALIGN_THRESHOLD
-    && Math.abs(poses[joints.RIGHT_WRIST].y - poses[joints.RIGHT_SHOULDER].y) <= ALIGN_THRESHOLD
-    && Math.abs(poses[joints.RIGHT_ELBOW].y - poses[joints.RIGHT_SHOULDER].y) <= ALIGN_THRESHOLD
-    && Math.abs(poses[joints.LEFT_ELBOW].y - poses[joints.LEFT_SHOULDER].y) > ALIGN_THRESHOLD
+  const escAligned = angle(joints.RIGHT_SHOULDER, joints.LEFT_SHOULDER, joints.LEFT_ELBOW)
+    && angle(joints.LEFT_SHOULDER, joints.LEFT_ELBOW, joints.LEFT_WRIST, 45)
+    && joints.LEFT_ELBOW.y > joints.LEFT_SHOULDER.y
+    && joints.LEFT_WRIST.x < joints.LEFT_SHOULDER.x;
 
-  const rightAligned = Math.abs(poses[joints.LEFT_WRIST].x - poses[joints.LEFT_SHOULDER].x) <= ALIGN_THRESHOLD
-    && Math.abs(poses[joints.LEFT_ELBOW].x - poses[joints.LEFT_SHOULDER].x) <= ALIGN_THRESHOLD
-    && Math.abs(poses[joints.LEFT_WRIST].y - poses[joints.LEFT_SHOULDER].y) <= ALIGN_THRESHOLD
-    && Math.abs(poses[joints.LEFT_ELBOW].y - poses[joints.LEFT_SHOULDER].y) <= ALIGN_THRESHOLD
-    && Math.abs(poses[joints.RIGHT_ELBOW].y - poses[joints.RIGHT_SHOULDER].y) > ALIGN_THRESHOLD
+  const rightAligned = Math.abs(joints.LEFT_WRIST.x - joints.LEFT_SHOULDER.x) <= ALIGN_THRESHOLD
+    && Math.abs(joints.LEFT_ELBOW.x - joints.LEFT_SHOULDER.x) <= ALIGN_THRESHOLD
+    && Math.abs(joints.LEFT_WRIST.y - joints.LEFT_SHOULDER.y) <= ALIGN_THRESHOLD
+    && Math.abs(joints.LEFT_ELBOW.y - joints.LEFT_SHOULDER.y) <= ALIGN_THRESHOLD
+    && Math.abs(joints.RIGHT_ELBOW.y - joints.RIGHT_SHOULDER.y) > ALIGN_THRESHOLD;
 
-  let rightMouseMove;
-  let leftMouseMove;
-  if (ARMS.every(jointIdx => {
-    const joint = poses[jointIdx];
-    const isAligned = Math.abs(joint.y - baseline) < ALIGN_THRESHOLD;
-    lastX = joint.x;
-    return isAligned;
-  })) {
-    rightMouseMove = poses[joints.LEFT_WRIST].x < poses[joints.LEFT_SHOULDER].x
-      && poses[joints.RIGHT_WRIST].x < poses[joints.RIGHT_SHOULDER].x
+  const leftAligned = Math.abs(joints.RIGHT_WRIST.x - joints.RIGHT_SHOULDER.x) <= ALIGN_THRESHOLD
+    && Math.abs(joints.RIGHT_ELBOW.x - joints.RIGHT_SHOULDER.x) <= ALIGN_THRESHOLD
+    && Math.abs(joints.RIGHT_WRIST.y - joints.RIGHT_SHOULDER.y) <= ALIGN_THRESHOLD
+    && Math.abs(joints.RIGHT_ELBOW.y - joints.RIGHT_SHOULDER.y) <= ALIGN_THRESHOLD
+    && Math.abs(joints.LEFT_ELBOW.y - joints.LEFT_SHOULDER.y) > ALIGN_THRESHOLD;
 
-    leftMouseMove = poses[joints.RIGHT_WRIST].x > poses[joints.RIGHT_SHOULDER].x
-      && poses[joints.LEFT_WRIST].x > poses[joints.LEFT_SHOULDER].x
+  const baseline = joints.RIGHT_SHOULDER.y;
+  const arms_horizontal = ARMS.every(joint => Math.abs(joint.y - baseline) < ALIGN_THRESHOLD);
+
+  const rightMouseMove = arms_horizontal && joints.LEFT_WRIST.x < joints.LEFT_SHOULDER.x
+    && joints.RIGHT_WRIST.x < joints.RIGHT_SHOULDER.x;
+
+  const leftMouseMove = arms_horizontal && joints.RIGHT_WRIST.x > joints.RIGHT_SHOULDER.x
+    && joints.LEFT_WRIST.x > joints.LEFT_SHOULDER.x;
+
+  const elbows_out = angle(joints.RIGHT_WRIST, joints.RIGHT_ELBOW, joints.RIGHT_SHOULDER)
+    && angle(joints.LEFT_WRIST, joints.LEFT_ELBOW, joints.LEFT_SHOULDER)
+    && angle(joints.LEFT_ELBOW, joints.LEFT_SHOULDER, joints.RIGHT_SHOULDER, 180)
+    && angle(joints.LEFT_ELBOW, joints.LEFT_SHOULDER, joints.RIGHT_SHOULDER, 180);
+
+  const upMouseMove = elbows_out && joints.LEFT_WRIST.y < joints.LEFT_SHOULDER.y
+    && joints.RIGHT_WRIST.y < joints.RIGHT_SHOULDER.y;
+
+  const downMouseMove = elbows_out && joints.LEFT_WRIST.y > joints.LEFT_SHOULDER.y
+    && joints.RIGHT_WRIST.y > joints.RIGHT_SHOULDER.y;
+
+  const currentKey = Waligned ? 'W' : Aaligned ? 'A' : Saligned ? 'S' : Daligned ? 'D' : crouchAligned ? 'SHIFT' : jumpAligned ? 'SPACE' : Ealigned ? 'E' : escAligned ? 'ESC' : '';
+
+  window.electronAPI.sendKey(currentKey);
+
+  const currentMouseButton = leftAligned ? '1' : rightAligned ? '3' : '';
+
+  window.electronAPI.sendMouse(currentMouseButton);
+
+  const mouseIncrement = 10;
+  const currentMouseMove = {
+    x: (rightMouseMove ? 1 : leftMouseMove ? -1 : 0) * mouseIncrement,
+    y: (upMouseMove ? -1 : downMouseMove ? 1 : 0) * mouseIncrement,
   }
 
-  let upMouseMove;
-  let downMouseMove;
-  if (angle(poses[joints.RIGHT_WRIST], poses[joints.RIGHT_ELBOW], poses[joints.RIGHT_SHOULDER],) < 100
-    && angle(poses[joints.LEFT_WRIST], poses[joints.LEFT_ELBOW], poses[joints.LEFT_SHOULDER],) < 100
-    && Math.abs(poses[joints.RIGHT_ELBOW].y - poses[joints.RIGHT_SHOULDER].y) < ALIGN_THRESHOLD
-    && Math.abs(poses[joints.LEFT_ELBOW].y - poses[joints.LEFT_SHOULDER].y) < ALIGN_THRESHOLD) {
-    upMouseMove = poses[joints.LEFT_WRIST].y < poses[joints.LEFT_SHOULDER].y
-      && poses[joints.RIGHT_WRIST].y < poses[joints.RIGHT_SHOULDER].y
+  window.electronAPI.sendMouseMove(currentMouseMove);
 
-    downMouseMove = poses[joints.LEFT_WRIST].y > poses[joints.LEFT_SHOULDER].y
-      && poses[joints.RIGHT_WRIST].y > poses[joints.RIGHT_SHOULDER].y
-  }
-
-
-  currentPose = Waligned ? 'W' : Aaligned ? 'A' : Saligned ? 'S' : Daligned ? 'D' : crouchAligned ? 'SHIFT' : jumpAligned ? 'SPACE' : Ealigned ? 'E' : '';
-
-  window.electronAPI.sendKey(currentPose);
-
-  let currentMousePose = leftAligned ? '1' : rightAligned ? '3' : '';
-
-  window.electronAPI.sendMouse(currentMousePose);
-
-  let currentMouseMoveX = rightMouseMove ? 10 : leftMouseMove ? -10 : 0;
-
-  let currentMouseMoveY = upMouseMove ? -10 : downMouseMove ? 10 : 0;
-  const mouseMove = {
-    x: currentMouseMoveX,
-    y: currentMouseMoveY
-  }
-
-  window.electronAPI.sendMouseMove(mouseMove);
-
-  showPose.textContent = currentPose || currentMousePose || (rightMouseMove ? '>' : leftMouseMove ? '<' : upMouseMove ? '^' : downMouseMove ? 'v' : '');
-  /* LEFT_ANKLE
-        LEFT_EAR
-        LEFT_ELBOW
-        LEFT_EYE
-        LEFT_EYE_INNER
-        LEFT_EYE_OUTER
-        LEFT_FOOT_INDEX
-        LEFT_HEEL
-        LEFT_HIP
-        LEFT_INDEX
-        LEFT_KNEE
-        LEFT_PINKY
-        LEFT_RIGHT
-        LEFT_SHOULDER
-        LEFT_THUMB
-        LEFT_WRIST
-        RIGHT_ANKLE
-        RIGHT_EAR
-        RIGHT_ELBOW
-        RIGHT_EYE
-        RIGHT_EYE_INNER
-        RIGHT_EYE_OUTER
-        RIGHT_FOOT_INDEX
-        RIGHT_HEEL
-        RIGHT_HIP
-        RIGHT_INDEX
-        RIGHT_KNEE
-        RIGHT_LEFT
-        RIGHT_PINKY
-        RIGHT_SHOULDER
-        RIGHT_THUMB
-        RIGHT_WRIST
+  showPose.textContent = currentKey || currentMouseButton || (rightMouseMove ? '>' : leftMouseMove ? '<' : upMouseMove ? '^' : downMouseMove ? 'v' : '');
+  /*LEFT_ANKLE
+    LEFT_EAR
+    LEFT_ELBOW
+    LEFT_EYE
+    LEFT_EYE_INNER
+    LEFT_EYE_OUTER
+    LEFT_FOOT_INDEX
+    LEFT_HEEL
+    LEFT_HIP
+    LEFT_INDEX
+    LEFT_KNEE
+    LEFT_PINKY
+    LEFT_RIGHT
+    LEFT_SHOULDER
+    LEFT_THUMB
+    LEFT_WRIST
+    RIGHT_ANKLE
+    RIGHT_EAR
+    RIGHT_ELBOW
+    RIGHT_EYE
+    RIGHT_EYE_INNER
+    RIGHT_EYE_OUTER
+    RIGHT_FOOT_INDEX
+    RIGHT_HEEL
+    RIGHT_HIP
+    RIGHT_INDEX
+    RIGHT_KNEE
+    RIGHT_LEFT
+    RIGHT_PINKY
+    RIGHT_SHOULDER
+    RIGHT_THUMB
+    RIGHT_WRIST
   */
 
 }
@@ -258,7 +243,7 @@ function onResults(results) {
     canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
   }
   if (results.poseLandmarks) {
-    isJesus(results.poseLandmarks);
+    IDPoses(results.poseLandmarks);
 
     drawingUtils.drawConnectors(canvasCtx, results.poseLandmarks, mpPose.POSE_CONNECTIONS, { visibilityMin: 0.65, color: 'white' });
     drawingUtils.drawLandmarks(canvasCtx, Object.values(mpPose.POSE_LANDMARKS_LEFT)
