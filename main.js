@@ -1,17 +1,9 @@
-const electron = require('electron');
+// To control application life, pass data between renderer and main, and create native browser window
+const {app, ipcMain, BrowserWindow } = require('electron');
 const path = require('path');
 const url = require('url');
 const robot = require("kbm-robot");
 const { getMousePos } = require("robotjs");
-
-// Module to control application life.
-const app = electron.app;
-
-// Module to pass data between renderer and main
-const ipcMain = electron.ipcMain;
-
-// Module to create native browser window.
-const BrowserWindow = electron.BrowserWindow;
 
 // Start the kbm-robot java process
 robot.startJar();
