@@ -46,6 +46,13 @@ function dist(x1, y1, x2, y2) {
   return Math.sqrt(x * x + y * y);
 }
 
+function angle(A, B, C) {
+  var AB = Math.sqrt(Math.pow(B.x - A.x, 2) + Math.pow(B.y - A.y, 2));
+  var BC = Math.sqrt(Math.pow(B.x - C.x, 2) + Math.pow(B.y - C.y, 2));
+  var AC = Math.sqrt(Math.pow(C.x - A.x, 2) + Math.pow(C.y - A.y, 2));
+  return Math.acos((BC * BC + AB * AB - AC * AC) / (2 * BC * AB)) * 180 / Math.PI;
+}
+
 function isJesus(poses) {
   const ARMS = [
     mpPose.POSE_LANDMARKS_RIGHT.RIGHT_WRIST,
@@ -56,6 +63,7 @@ function isJesus(poses) {
   ];
   const WRIST = [
     mpPose.POSE_LANDMARKS_RIGHT.RIGHT_WRIST,
+    mpPose.POSE_LANDMARKS_RIGHT.RIGHT_SHOULDER,
     mpPose.POSE_LANDMARKS_LEFT.LEFT_SHOULDER,
     mpPose.POSE_LANDMARKS_LEFT.LEFT_WRIST,
   ];
@@ -72,26 +80,30 @@ function isJesus(poses) {
   const ALIGN_THRESHOLD = 0.07;
 
   let lastX = 0;
-  const Taligned = ARMS.every(jointIdx => {
+  const Ealigned = ARMS.every(jointIdx => {
     const joint = poses[jointIdx];
-    const isAligned = Math.abs(joint.y - baseline) < ALIGN_THRESHOLD && joint.x > lastX;
+    const isAligned = joint.visibility >= 0.65 && Math.abs(joint.y - baseline) < ALIGN_THRESHOLD && joint.x > lastX;
     lastX = joint.x;
     return isAligned;
   });
 
   lastX = 0;
-  let Waligned = WRIST.every(jointIdx => {
+  const Waligned = WRIST.every(jointIdx => {
     const joint = poses[jointIdx];
     const isAligned = Math.abs(joint.y - baseline) < ALIGN_THRESHOLD && joint.x > lastX;
     lastX = joint.x;
     return isAligned;
-  });
-  let Aaligned = dist(poses[joints.LEFT_WRIST].x, poses[joints.LEFT_WRIST].y, poses[joints.RIGHT_WRIST].x, poses[joints.RIGHT_WRIST].y) <= ALIGN_THRESHOLD
+  }) && angle(poses[joints.RIGHT_WRIST], poses[joints.RIGHT_ELBOW], poses[joints.RIGHT_SHOULDER],) < 100
+    && angle(poses[joints.LEFT_WRIST], poses[joints.LEFT_ELBOW], poses[joints.LEFT_SHOULDER],) < 100
+    && poses[joints.LEFT_WRIST].y < poses[joints.LEFT_ELBOW].y
+    && poses[joints.RIGHT_WRIST].y < poses[joints.RIGHT_ELBOW].y;
+
+  const Aaligned = dist(poses[joints.LEFT_WRIST].x, poses[joints.LEFT_WRIST].y, poses[joints.RIGHT_WRIST].x, poses[joints.RIGHT_WRIST].y) < ALIGN_THRESHOLD
     && poses[joints.RIGHT_ELBOW].y <= poses[joints.RIGHT_SHOULDER].y
     && poses[joints.RIGHT_ELBOW].x <= poses[joints.RIGHT_SHOULDER].x
     && poses[joints.RIGHT_WRIST].y <= poses[joints.RIGHT_ELBOW].y;
 
-  let Saligned = poses[joints.RIGHT_WRIST].y <= poses[joints.LEFT_EYE].y 
+  const Saligned = poses[joints.RIGHT_WRIST].y <= poses[joints.LEFT_EYE].y
     && poses[joints.RIGHT_ELBOW].x <= poses[joints.RIGHT_SHOULDER].x
     && poses[joints.LEFT_ELBOW].x >= poses[joints.LEFT_SHOULDER].x
     && poses[joints.RIGHT_WRIST].x <= poses[joints.RIGHT_SHOULDER].x
@@ -101,53 +113,118 @@ function isJesus(poses) {
     && poses[joints.RIGHT_ELBOW].y < poses[joints.RIGHT_SHOULDER].y
     && poses[joints.RIGHT_WRIST].y < poses[joints.RIGHT_ELBOW].y;
 
-    let Daligned = poses[joints.LEFT_WRIST].y <= poses[joints.LEFT_ELBOW].y
-    && poses[joints.LEFT_ELBOW].y <= poses[joints.LEFT_SHOULDER].y
-    && Math.abs(poses[joints.LEFT_WRIST].x - poses[joints.LEFT_SHOULDER]) < ALIGN_THRESHOLD
-    && Math.abs(poses[joints.LEFT_ELBOW].x - poses[joints.LEFT_SHOULDER]) < ALIGN_THRESHOLD
+  const Daligned = poses[joints.LEFT_WRIST].y < poses[joints.LEFT_ELBOW].y
+    && poses[joints.LEFT_ELBOW].y < poses[joints.LEFT_SHOULDER].y
+    && Math.abs(poses[joints.LEFT_WRIST].x - poses[joints.LEFT_SHOULDER].x) < ALIGN_THRESHOLD
+    && Math.abs(poses[joints.LEFT_ELBOW].x - poses[joints.LEFT_SHOULDER].x) < ALIGN_THRESHOLD
     && poses[joints.RIGHT_ELBOW].y > poses[joints.RIGHT_SHOULDER].y
     && poses[joints.RIGHT_WRIST].y > poses[joints.RIGHT_ELBOW].y
     && poses[joints.RIGHT_ELBOW].x < poses[joints.RIGHT_SHOULDER].y
-    && Math.abs(poses[joints.LEFT_WRIST].x - poses[joints.LEFT_SHOULDER]) < ALIGN_THRESHOLD;
+    && Math.abs(poses[joints.LEFT_WRIST].x - poses[joints.LEFT_SHOULDER].x) < ALIGN_THRESHOLD;
 
-  currentPose = Taligned ? 'T' : Waligned ? 'W' : Aaligned ? 'A' : Saligned ? 'S' : Daligned ? 'D' : '';
+  const crouchAligned = Math.abs(poses[joints.RIGHT_HIP].y - poses[joints.RIGHT_HEEL].y) < 0.15 && poses[joints.RIGHT_HEEL].visibility > 0.65;
 
-  window.electronAPI.sendKey(currentPose.toLowerCase());
+  const jumpAligned = Math.abs(poses[joints.RIGHT_ELBOW].x - poses[joints.RIGHT_SHOULDER].x) <= ALIGN_THRESHOLD
+    && Math.abs(poses[joints.RIGHT_WRIST].x - poses[joints.RIGHT_SHOULDER].x) <= ALIGN_THRESHOLD
+    && Math.abs(poses[joints.LEFT_ELBOW].x - poses[joints.LEFT_SHOULDER].x) <= ALIGN_THRESHOLD
+    && Math.abs(poses[joints.LEFT_WRIST].x - poses[joints.LEFT_SHOULDER].x) <= ALIGN_THRESHOLD
+    && poses[joints.LEFT_WRIST].y < poses[joints.LEFT_SHOULDER].y 
+    && poses[joints.RIGHT_WRIST].y < poses[joints.RIGHT_SHOULDER].y 
+    && dist(poses[joints.LEFT_WRIST].x, poses[joints.LEFT_WRIST].y, poses[joints.RIGHT_WRIST].x, poses[joints.RIGHT_WRIST].y) > ALIGN_THRESHOLD;
 
-  showPose.textContent = currentPose;
-/* LEFT_ANKLE
-      LEFT_EAR
-      LEFT_ELBOW
-      LEFT_EYE
-      LEFT_EYE_INNER
-      LEFT_EYE_OUTER
-      LEFT_FOOT_INDEX
-      LEFT_HEEL
-      LEFT_HIP
-      LEFT_INDEX
-      LEFT_KNEE
-      LEFT_PINKY
-      LEFT_RIGHT
-      LEFT_SHOULDER
-      LEFT_THUMB
-      LEFT_WRIST
-      RIGHT_ANKLE
-      RIGHT_EAR
-      RIGHT_ELBOW
-      RIGHT_EYE
-      RIGHT_EYE_INNER
-      RIGHT_EYE_OUTER
-      RIGHT_FOOT_INDEX
-      RIGHT_HEEL
-      RIGHT_HIP
-      RIGHT_INDEX
-      RIGHT_KNEE
-      RIGHT_LEFT
-      RIGHT_PINKY
-      RIGHT_SHOULDER
-      RIGHT_THUMB
-      RIGHT_WRIST
-*/
+  const leftAligned = Math.abs(poses[joints.RIGHT_WRIST].x - poses[joints.RIGHT_SHOULDER].x) <= ALIGN_THRESHOLD
+    && Math.abs(poses[joints.RIGHT_ELBOW].x - poses[joints.RIGHT_SHOULDER].x) <= ALIGN_THRESHOLD
+    && Math.abs(poses[joints.RIGHT_WRIST].y - poses[joints.RIGHT_SHOULDER].y) <= ALIGN_THRESHOLD
+    && Math.abs(poses[joints.RIGHT_ELBOW].y - poses[joints.RIGHT_SHOULDER].y) <= ALIGN_THRESHOLD
+    && Math.abs(poses[joints.LEFT_ELBOW].y - poses[joints.LEFT_SHOULDER].y) > ALIGN_THRESHOLD
+
+  const rightAligned = Math.abs(poses[joints.LEFT_WRIST].x - poses[joints.LEFT_SHOULDER].x) <= ALIGN_THRESHOLD
+    && Math.abs(poses[joints.LEFT_ELBOW].x - poses[joints.LEFT_SHOULDER].x) <= ALIGN_THRESHOLD
+    && Math.abs(poses[joints.LEFT_WRIST].y - poses[joints.LEFT_SHOULDER].y) <= ALIGN_THRESHOLD
+    && Math.abs(poses[joints.LEFT_ELBOW].y - poses[joints.LEFT_SHOULDER].y) <= ALIGN_THRESHOLD
+    && Math.abs(poses[joints.RIGHT_ELBOW].y - poses[joints.RIGHT_SHOULDER].y) > ALIGN_THRESHOLD
+
+  let rightMouseMove;
+  let leftMouseMove;
+  if (ARMS.every(jointIdx => {
+    const joint = poses[jointIdx];
+    const isAligned = Math.abs(joint.y - baseline) < ALIGN_THRESHOLD;
+    lastX = joint.x;
+    return isAligned;
+  })) {
+    rightMouseMove = poses[joints.LEFT_WRIST].x < poses[joints.LEFT_SHOULDER].x
+      && poses[joints.RIGHT_WRIST].x < poses[joints.RIGHT_SHOULDER].x
+
+    leftMouseMove = poses[joints.RIGHT_WRIST].x > poses[joints.RIGHT_SHOULDER].x
+      && poses[joints.LEFT_WRIST].x > poses[joints.LEFT_SHOULDER].x
+  }
+
+  let upMouseMove;
+  let downMouseMove;
+  if (angle(poses[joints.RIGHT_WRIST], poses[joints.RIGHT_ELBOW], poses[joints.RIGHT_SHOULDER],) < 100
+    && angle(poses[joints.LEFT_WRIST], poses[joints.LEFT_ELBOW], poses[joints.LEFT_SHOULDER],) < 100
+    && Math.abs(poses[joints.RIGHT_ELBOW].y - poses[joints.RIGHT_SHOULDER].y) < ALIGN_THRESHOLD
+    && Math.abs(poses[joints.LEFT_ELBOW].y - poses[joints.LEFT_SHOULDER].y) < ALIGN_THRESHOLD) {
+    upMouseMove = poses[joints.LEFT_WRIST].y < poses[joints.LEFT_SHOULDER].y
+      && poses[joints.RIGHT_WRIST].y < poses[joints.RIGHT_SHOULDER].y
+
+    downMouseMove = poses[joints.LEFT_WRIST].y > poses[joints.LEFT_SHOULDER].y
+      && poses[joints.RIGHT_WRIST].y > poses[joints.RIGHT_SHOULDER].y
+  }
+
+
+  currentPose = Waligned ? 'W' : Aaligned ? 'A' : Saligned ? 'S' : Daligned ? 'D' : crouchAligned ? 'SHIFT' : jumpAligned ? 'SPACE' : Ealigned ? 'E' : '';
+
+  window.electronAPI.sendKey(currentPose);
+
+  let currentMousePose = leftAligned ? '1' : rightAligned ? '3' : '';
+
+  window.electronAPI.sendMouse(currentMousePose);
+
+  let currentMouseMoveX = rightMouseMove ? 10 : leftMouseMove ? -10 : 0;
+
+  let currentMouseMoveY = upMouseMove ? -10 : downMouseMove ? 10 : 0;
+  const mouseMove = {
+    x: currentMouseMoveX,
+    y: currentMouseMoveY
+  }
+
+  window.electronAPI.sendMouseMove(mouseMove);
+
+  showPose.textContent = currentPose || currentMousePose || (rightMouseMove ? '>' : leftMouseMove ? '<' : upMouseMove ? '^' : downMouseMove ? 'v' : '');
+  /* LEFT_ANKLE
+        LEFT_EAR
+        LEFT_ELBOW
+        LEFT_EYE
+        LEFT_EYE_INNER
+        LEFT_EYE_OUTER
+        LEFT_FOOT_INDEX
+        LEFT_HEEL
+        LEFT_HIP
+        LEFT_INDEX
+        LEFT_KNEE
+        LEFT_PINKY
+        LEFT_RIGHT
+        LEFT_SHOULDER
+        LEFT_THUMB
+        LEFT_WRIST
+        RIGHT_ANKLE
+        RIGHT_EAR
+        RIGHT_ELBOW
+        RIGHT_EYE
+        RIGHT_EYE_INNER
+        RIGHT_EYE_OUTER
+        RIGHT_FOOT_INDEX
+        RIGHT_HEEL
+        RIGHT_HIP
+        RIGHT_INDEX
+        RIGHT_KNEE
+        RIGHT_LEFT
+        RIGHT_PINKY
+        RIGHT_SHOULDER
+        RIGHT_THUMB
+        RIGHT_WRIST
+  */
 
 }
 function onResults(results) {

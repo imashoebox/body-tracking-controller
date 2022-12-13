@@ -7,34 +7,61 @@ const BrowserWindow = electron.BrowserWindow
 const path = require('path')
 const url = require('url')
 const robot = require("kbm-robot");
+const { mouseMove } = require('kbm-robot')
 const ipcMain = electron.ipcMain
 robot.startJar();
+var robotjs = require("robotjs");
+
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow
 
-let letter;
+let lastKey;
 
 function createWindow() {
-
-  let sending = false;
   ipcMain.on('send-key', (_, key) => {
-    if (key !== letter && letter) {
-      robot.release(letter).press(key).go(() => {
-        letter = key;
+    if (key !== lastKey && lastKey) {
+      robot.release(lastKey).press(key).go(() => {
+        lastKey = key;
       });
-    } else if (!letter) {
+    } else if (!lastKey) {
       robot.press(key).go(() => {
-        letter = key;
+        lastKey = key;
       });
     }
-    if(key === ''){
-      robot.release(letter).go(() => {
-        letter = false;
+    if (key === '') {
+      robot.release(lastKey).go(() => {
+        lastKey = false;
       });
     }
 
+  })
+
+  let lastMouse;
+  ipcMain.on('send-mouse', (_, mouse) => {
+    if (mouse !== lastMouse && lastMouse) {
+      robot.mouseRelease(lastMouse).mousePress(mouse).go(() => {
+        lastMouse = mouse;
+      });
+    } else if (!lastMouse) {
+      robot.mousePress(mouse).go(() => {
+        lastMouse = mouse;
+      });
+    }
+    if (mouse === '') {
+      robot.mouseRelease(lastMouse).go(() => {
+        lastMouse = false;
+      });
+    }
+
+  })
+
+  ipcMain.on('send-mouse-move', (_, mouseMove) => {
+    if (mouseMove.x || mouseMove.y) {
+      const currentMousePos = robotjs.getMousePos();
+      robot.mouseMove(currentMousePos.x + mouseMove.x, currentMousePos.y + mouseMove.y)
+    }
   })
 
   // Create the browser window.
@@ -51,11 +78,13 @@ function createWindow() {
     slashes: true
   }))
 
+
   // Open the DevTools.
   // mainWindow.webContents.openDevTools()
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
+    robot.stopJar()
     // Dereference the window object, usually you would store windows
     // in an array if your app supports multi windows, this is the time
     // when you should delete the corresponding element.
