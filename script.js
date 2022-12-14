@@ -62,6 +62,7 @@ function IDPoses(poseLandmarks) {
   const ARMS = [
     joints.RIGHT_WRIST,
     joints.RIGHT_ELBOW,
+    joints.RIGHT_SHOULDER,
     joints.LEFT_SHOULDER,
     joints.LEFT_ELBOW,
     joints.LEFT_WRIST,
