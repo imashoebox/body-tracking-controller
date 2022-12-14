@@ -1,6 +1,7 @@
 {
-  "name": "body-tracking",
+  "name": "bodytracking",
   "version": "0.0.2",
+  "icon": "favicon.ico",
   "description": "Body/pose tracking",
   "main": "main.js",
   "scripts": {
