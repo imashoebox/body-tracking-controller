@@ -10,7 +10,7 @@ robot.startJar();
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-let mainWindow
+let mainWindow;
 
 function createWindow() {
   let lastKey;
@@ -52,7 +52,7 @@ function createWindow() {
   ipcMain.on('send-mouse-move', (_, mouseMove) => {
     if (mouseMove.x || mouseMove.y) {
       const currentMousePos = getMousePos();
-      robot.mouseMove(currentMousePos.x + mouseMove.x, currentMousePos.y + mouseMove.y)
+      robot.mouseMove(currentMousePos.x + mouseMove.x, currentMousePos.y + mouseMove.y);
     }
   });
 
@@ -69,7 +69,7 @@ function createWindow() {
   mainWindow.loadURL(url.format({
     pathname: path.join(__dirname, 'index.html'),
     protocol: 'file:',
-    slashes: true
+    slashes: true,
   }));
 
   // Open the DevTools.
