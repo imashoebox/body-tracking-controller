@@ -155,23 +155,23 @@ function IDPoses(poseLandmarks) {
     && Math.abs(joints.LEFT_ELBOW.y - joints.LEFT_SHOULDER.y) > ALIGN_THRESHOLD;
 
   // use right shoulder as a baseline
-  const arms_horizontal = ARMS.every(joint => Math.abs(joint.y - joints.RIGHT_SHOULDER.y) < ALIGN_THRESHOLD);
+  const armsHorizontal = ARMS.every(joint => Math.abs(joint.y - joints.RIGHT_SHOULDER.y) < ALIGN_THRESHOLD);
 
-  const rightMouseMove = arms_horizontal && joints.LEFT_WRIST.x < joints.LEFT_SHOULDER.x
+  const rightMouseMove = armsHorizontal && joints.LEFT_WRIST.x < joints.LEFT_SHOULDER.x
     && joints.RIGHT_WRIST.x < joints.RIGHT_SHOULDER.x;
 
-  const leftMouseMove = arms_horizontal && joints.RIGHT_WRIST.x > joints.RIGHT_SHOULDER.x
+  const leftMouseMove = armsHorizontal && joints.RIGHT_WRIST.x > joints.RIGHT_SHOULDER.x
     && joints.LEFT_WRIST.x > joints.LEFT_SHOULDER.x;
 
-  const elbows_out = angle(joints.RIGHT_WRIST, joints.RIGHT_ELBOW, joints.RIGHT_SHOULDER)
+  const elbowsOutAndBent = angle(joints.RIGHT_WRIST, joints.RIGHT_ELBOW, joints.RIGHT_SHOULDER)
     && angle(joints.LEFT_WRIST, joints.LEFT_ELBOW, joints.LEFT_SHOULDER)
     && angle(joints.LEFT_ELBOW, joints.LEFT_SHOULDER, joints.RIGHT_SHOULDER, 180)
     && angle(joints.LEFT_ELBOW, joints.LEFT_SHOULDER, joints.RIGHT_SHOULDER, 180);
 
-  const upMouseMove = elbows_out && joints.LEFT_WRIST.y < joints.LEFT_SHOULDER.y
+  const upMouseMove = elbowsOutAndBent && joints.LEFT_WRIST.y < joints.LEFT_SHOULDER.y
     && joints.RIGHT_WRIST.y < joints.RIGHT_SHOULDER.y;
 
-  const downMouseMove = elbows_out && joints.LEFT_WRIST.y > joints.LEFT_SHOULDER.y
+  const downMouseMove = elbowsOutAndBent && joints.LEFT_WRIST.y > joints.LEFT_SHOULDER.y
     && joints.RIGHT_WRIST.y > joints.RIGHT_SHOULDER.y;
 
   const currentKey = Waligned ? 'W' : Aaligned ? 'A' : Saligned ? 'S' : Daligned ? 'D' : crouchAligned ? 'SHIFT' : jumpAligned ? 'SPACE' : Ealigned ? 'E' : escAligned ? 'ESC' : '';
@@ -182,10 +182,10 @@ function IDPoses(poseLandmarks) {
 
   window.electronAPI.sendMouse(currentMouseButton);
 
-  const mouseIncrement = 10;
+  const mouseSpeed = 10;
   const currentMouseMove = {
-    x: (rightMouseMove ? 1 : leftMouseMove ? -1 : 0) * mouseIncrement,
-    y: (upMouseMove ? -1 : downMouseMove ? 1 : 0) * mouseIncrement,
+    x: (rightMouseMove ? 1 : leftMouseMove ? -1 : 0) * mouseSpeed,
+    y: (upMouseMove ? -1 : downMouseMove ? 1 : 0) * mouseSpeed,
   }
 
   window.electronAPI.sendMouseMove(currentMouseMove);
