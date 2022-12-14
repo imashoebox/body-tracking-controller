@@ -140,8 +140,8 @@ function IDPoses(poseLandmarks) {
     && Math.abs(joints.RIGHT_ELBOW.y - joints.RIGHT_SHOULDER.y) <= ALIGN_THRESHOLD
     && Math.abs(joints.LEFT_ELBOW.y - joints.LEFT_SHOULDER.y) > ALIGN_THRESHOLD;
 
-  const baseline = joints.RIGHT_SHOULDER.y;
-  const arms_horizontal = ARMS.every(joint => Math.abs(joint.y - baseline) < ALIGN_THRESHOLD);
+  // use right shoulder as a baseline
+  const arms_horizontal = ARMS.every(joint => Math.abs(joint.y - joints.RIGHT_SHOULDER.y) < ALIGN_THRESHOLD);
 
   const rightMouseMove = arms_horizontal && joints.LEFT_WRIST.x < joints.LEFT_SHOULDER.x
     && joints.RIGHT_WRIST.x < joints.RIGHT_SHOULDER.x;
