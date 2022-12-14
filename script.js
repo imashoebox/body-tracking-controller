@@ -59,6 +59,9 @@ function IDPoses(poseLandmarks) {
     joints[idx] = poseLandmarks[joints[idx]];
   }
 
+  const ALIGN_THRESHOLD = 0.07;
+  const VIS_THRESHOLD = 0.65;
+
   const ARMS = [
     joints.RIGHT_WRIST,
     joints.RIGHT_ELBOW,
@@ -69,12 +72,10 @@ function IDPoses(poseLandmarks) {
   ];
 
   // Check if all arm joints are visible
-  if (ARMS.find(joint => joint.visibility < 0.65)) {
+  if (ARMS.find(joint => joint.visibility < VIS_THRESHOLD)) {
     showPose.textContent = '';
     return;
   }
-
-  const ALIGN_THRESHOLD = 0.07;
 
   const Ealigned = angle(joints.RIGHT_WRIST, joints.RIGHT_ELBOW, joints.RIGHT_SHOULDER, 180, 35)
     && angle(joints.RIGHT_ELBOW, joints.RIGHT_SHOULDER, joints.LEFT_SHOULDER, 90, 35)
@@ -114,7 +115,7 @@ function IDPoses(poseLandmarks) {
     && joints.RIGHT_ELBOW.y > joints.RIGHT_SHOULDER.y
     && angle(joints.LEFT_SHOULDER, joints.LEFT_ELBOW, joints.LEFT_WRIST, 180);
 
-  const crouchAligned = Math.abs(joints.RIGHT_HIP.y - joints.RIGHT_HEEL.y) < 0.15 && joints.RIGHT_HEEL.visibility > 0.65;
+  const crouchAligned = Math.abs(joints.RIGHT_HIP.y - joints.RIGHT_HEEL.y) < 0.15 && joints.RIGHT_HEEL.visibility > VIS_THRESHOLD;
 
   const jumpAligned = angle(joints.RIGHT_SHOULDER, joints.LEFT_SHOULDER, joints.LEFT_ELBOW)
     && angle(joints.LEFT_SHOULDER, joints.LEFT_ELBOW, joints.LEFT_WRIST, 180)
