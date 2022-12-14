@@ -38,11 +38,8 @@ let activeEffect = 'mask';
 
 const showPose = document.querySelector('.pose');
 
-function dist(x1, y1, x2, y2) {
-  const y = x2 - x1;
-  const x = y2 - y1;
-
-  return Math.sqrt(x * x + y * y);
+function dist(point1, point2) {
+  return Math.hypot(point2.x - point1.x, point2.y - point1.y);
 }
 
 function angle(A, B, C, setAngle = 90, tolerance = 25) {
@@ -92,7 +89,7 @@ function IDPoses(poseLandmarks) {
     && joints.RIGHT_ELBOW.y > joints.RIGHT_SHOULDER.y
     && joints.LEFT_ELBOW.y > joints.LEFT_SHOULDER.y;
 
-  const Aaligned = dist(joints.LEFT_WRIST.x, joints.LEFT_WRIST.y, joints.RIGHT_WRIST.x, joints.RIGHT_WRIST.y) < ALIGN_THRESHOLD
+  const Aaligned = dist(joints.LEFT_WRIST, joints.RIGHT_WRIST) < ALIGN_THRESHOLD
     && joints.RIGHT_ELBOW.y <= joints.RIGHT_SHOULDER.y
     && joints.RIGHT_ELBOW.x <= joints.RIGHT_SHOULDER.x
     && joints.RIGHT_WRIST.y <= joints.RIGHT_ELBOW.y;
@@ -123,7 +120,7 @@ function IDPoses(poseLandmarks) {
     && angle(joints.RIGHT_SHOULDER, joints.RIGHT_ELBOW, joints.RIGHT_WRIST, 180)
     && joints.RIGHT_WRIST.y < joints.RIGHT_SHOULDER.y
     && joints.LEFT_WRIST.y < joints.LEFT_SHOULDER.y
-    && dist(joints.LEFT_WRIST.x, joints.LEFT_WRIST.y, joints.RIGHT_WRIST.x, joints.RIGHT_WRIST.y) > ALIGN_THRESHOLD;
+    && dist(joints.LEFT_WRIST, joints.RIGHT_WRIST) > ALIGN_THRESHOLD;
 
   const escAligned = angle(joints.RIGHT_SHOULDER, joints.LEFT_SHOULDER, joints.LEFT_ELBOW)
     && angle(joints.LEFT_SHOULDER, joints.LEFT_ELBOW, joints.LEFT_WRIST, 45)
