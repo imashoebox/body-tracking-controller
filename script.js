@@ -214,6 +214,7 @@ function IDPoses(poseLandmarks) {
   */
 
 }
+
 function onResults(results) {
   // Hide the spinner.
   document.body.classList.add('loaded');
