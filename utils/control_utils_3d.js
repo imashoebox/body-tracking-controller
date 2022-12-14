@@ -4719,7 +4719,7 @@ class LandmarkGrid {
     constructor(parent, config = {}) {
         this.distance = 150;
         this.size = 100;
-        this.isRotating = true;
+        this.isRotating = false;
         this.rotation = 0;
         this.rotationSpeed = Math.PI / 180;
         this.disposeQueue = [];
@@ -4737,7 +4737,8 @@ class LandmarkGrid {
         this.addPausePlay(this.container);
         this.camera =
             new THREE.PerspectiveCamera(75, parentBox.width / parentBox.height, 1);
-        this.camera.position.x = this.distance;
+        this.camera.position.z = Math.cos(this.rotation) * this.distance;
+        this.camera.position.x = Math.sin(this.rotation) * this.distance;
         this.camera.lookAt(ORIGIN);
         this.renderer =
             new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
@@ -5187,7 +5188,7 @@ class LandmarkGrid {
         /** @type {!HTMLImageElement} */
         const button = document.createElement('img');
         button.classList.add('controls');
-        button.src = PAUSE_SRC;
+        button.src = PLAY_SRC;
         button.onclick = (/**
          * @return {void}
          */
