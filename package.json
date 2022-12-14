@@ -1,6 +1,6 @@
 {
   "name": "body-tracking",
-  "version": "1.0.0",
+  "version": "0.0.2",
   "description": "Body/pose tracking",
   "main": "main.js",
   "scripts": {
