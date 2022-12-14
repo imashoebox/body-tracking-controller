@@ -38,10 +38,25 @@ let activeEffect = 'mask';
 
 const showPose = document.querySelector('.pose');
 
+/**
+ * 
+ * @param {*} point1 Point 1 with x and y properties
+ * @param {*} point2 Point 2 with x and y properties
+ * @returns {number} The distance bewteen the points
+ */
 function dist(point1, point2) {
   return Math.hypot(point2.x - point1.x, point2.y - point1.y);
 }
 
+/**
+ * Calculates the smaller angle ABC
+ * @param {*} A Point A with x and y properties
+ * @param {*} B Point B with x and y properties
+ * @param {*} C Point C with x and y properties
+ * @param {Number} setAngle The angle to check against, in degrees
+ * @param {Number} tolerance The tolerance for the set angle, in degrees
+ * @returns {Boolean} Whether or not the angle between the points is within the tolerance of the set angle
+ */
 function angle(A, B, C, setAngle = 90, tolerance = 25) {
   const AB = Math.sqrt(Math.pow(B.x - A.x, 2) + Math.pow(B.y - A.y, 2));
   const BC = Math.sqrt(Math.pow(B.x - C.x, 2) + Math.pow(B.y - C.y, 2));
