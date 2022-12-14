@@ -58,9 +58,9 @@ function dist(point1, point2) {
  * @returns {Boolean} Whether or not the angle between the points is within the tolerance of the set angle
  */
 function angle(A, B, C, setAngle = 90, tolerance = 25) {
-  const AB = Math.sqrt(Math.pow(B.x - A.x, 2) + Math.pow(B.y - A.y, 2));
-  const BC = Math.sqrt(Math.pow(B.x - C.x, 2) + Math.pow(B.y - C.y, 2));
-  const AC = Math.sqrt(Math.pow(C.x - A.x, 2) + Math.pow(C.y - A.y, 2));
+  const AB = dist(A, B);
+  const BC = dist(B, C);
+  const AC = dist(A, C);
   const calcAngle = Math.acos((BC * BC + AB * AB - AC * AC) / (2 * BC * AB)) * 180 / Math.PI;
   return setAngle + tolerance > calcAngle && setAngle - tolerance < calcAngle;
 }
@@ -180,6 +180,7 @@ function IDPoses(poseLandmarks) {
 
   window.electronAPI.sendKey(currentKey);
 
+  // button 3 is right click in kbm-robot for some reason
   const currentMouseButton = leftAligned ? '1' : rightAligned ? '3' : '';
 
   window.electronAPI.sendMouse(currentMouseButton);
@@ -226,7 +227,6 @@ function IDPoses(poseLandmarks) {
     RIGHT_THUMB
     RIGHT_WRIST
   */
-
 }
 
 function onResults(results) {
