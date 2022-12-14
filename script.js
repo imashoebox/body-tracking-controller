@@ -4,8 +4,8 @@ const drawingUtils = window;
 const mpPose = window;
 const options = {
   locateFile: (file) => {
-    return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@${mpPose.VERSION}/${file}`;
-  }
+    return `./assets/${file}`;
+  },
 };
 // Our input frames will come from here.
 const videoElement = document.getElementsByClassName('input_video')[0];
