@@ -104,7 +104,7 @@ function IDPoses(poseLandmarks) {
     && joints.RIGHT_ELBOW.y > joints.RIGHT_SHOULDER.y
     && joints.LEFT_ELBOW.y > joints.LEFT_SHOULDER.y
     && joints.LEFT_WRIST.x > joints.LEFT_SHOULDER.x
-    && joints.RIGHT_WRIST.X < joints.RIGHT_SHOULDER.x;
+    && joints.RIGHT_WRIST.x < joints.RIGHT_SHOULDER.x;
 
   const Aaligned = dist(joints.LEFT_WRIST, joints.RIGHT_WRIST) < ALIGN_THRESHOLD
     && joints.RIGHT_ELBOW.y <= joints.RIGHT_SHOULDER.y
